@@ -1,122 +1,119 @@
 <!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | My project</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
-  </head>
-  <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
-        </div>
-      </div>
-      <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-webgl-logo"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">My project</div>
-      </div>
-    </div>
-    <script>
+<html>
+<head>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <a-assets>
+      <video id="video" src="https://d1yei2z3i6k35z.cloudfront.net/6682800/660726ef15105_VDO_POC_BINLAB_publi_Rock_v2.mp4" autoplay loop crossorigin="anonymous"></video>
+      <audio id="audio" src="https://d1yei2z3i6k35z.cloudfront.net/6682800/6605ad3bb02bc_6605aa2c20fe9_BINAULAB_Rock_Publi3dJingles2.mp3" crossorigin="anonymous"></audio>
+    </a-assets>
 
-      var container = document.querySelector("#unity-container");
-      var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-      var warningBanner = document.querySelector("#unity-warning");
+    <a-entity id="video-entity" position="0 0 -5">
+      <a-video src="#video" width="4" height="2.25" video-controller></a-video>
+    </a-entity>
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+    <a-entity id="audio-entity" sound="src: #audio; autoplay: true; loop: true;"></a-entity>
+
+    <a-entity id="video-controls" position="-2 1.5 -5">
+      <a-text id="delay-label" value="Delay: 0" position="0 0 0"></a-text>
+      <a-entity slider="min: -1; max: 1; step: 0.1; value: -0.1" position="3 -2.9 0"
+                event-set__click="_target: #video-entity.components.video-controller; _delay: ${this.components.slider.data.value}"
+                event-set__click="_target: #delay-label; value: Delay: ${this.components.slider.data.value.toFixed(1)}"></a-entity>
+      <a-entity id="video-mute-button" position="1.7 -2.9  0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #C38A2C" text="value: Mute Vdo; align: center" mute-video></a-entity>
+      <a-entity id="audio-mute-button" position="0.3 -2.9 0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #FDB53E" text="value: Mute AS; align: center" mute-audio></a-entity>
+    </a-entity>
+
+    <a-entity camera wasd-controls look-controls>
+      <a-cursor></a-cursor>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    AFRAME.registerComponent('video-controller', {
+      schema: {
+        delay: {type: 'number', default: 0}
+      },
+
+      init: function() {
+        this.videoEl = this.el.components.material.material.map.image;
+      },
+
+      update: function() {
+        if (this.videoEl) {
+          this.videoEl.currentTime = this.data.delay;
         }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
       }
+    });
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/v7webgl.loader.js";
-      var config = {
-        dataUrl: buildUrl + "/v7webgl.data",
-        frameworkUrl: buildUrl + "/v7webgl.framework.js",
-        codeUrl: buildUrl + "/v7webgl.wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "My project",
-        productVersion: "0.1",
-        showBanner: unityShowBanner,
-      };
+    AFRAME.registerComponent('slider', {
+      schema: {
+        min: {type: 'number', default: 0},
+        max: {type: 'number', default: 1},
+        step: {type: 'number', default: 0.1},
+        value: {type: 'number', default: 0}
+      },
 
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
+      init: function() {
+        var el = this.el;
+        var data = this.data;
 
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
+        el.setAttribute('geometry', {
+          primitive: 'box',
+          width: 1,
+          height: 0.1,
+          depth: 0.1
+        });
 
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        container.className = "unity-mobile";
-        canvas.className = "unity-mobile";
+        el.setAttribute('material', {color: '#ccc'});
 
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
+        el.addEventListener('click', function(evt) {
+          var sliderWidth = 1;
+          var sliderX = evt.detail.intersection.point.x;
+          var value = (sliderX + sliderWidth / 2) / sliderWidth;
+          value = data.min + (data.max - data.min) * value;
+          value = Math.round(value / data.step) * data.step;
+          el.setAttribute('slider', 'value', value);
+        });
       }
+    });
 
-      loadingBar.style.display = "block";
+    AFRAME.registerComponent('mute-video', {
+      init: function() {
+        var el = this.el;
+        var videoEl = document.querySelector('#video');
 
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                loadingBar.style.display = "none";
-                fullscreenButton.onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-              }).catch((message) => {
-                alert(message);
-              });
-            };
+        el.addEventListener('click', function() {
+          if (videoEl.muted) {
+            videoEl.muted = false;
+            el.setAttribute('text', 'value', 'Mute Vdo');
+          } else {
+            videoEl.muted = true;
+            el.setAttribute('text', 'value', 'Unmute Vdo');
+          }
+        });
+      }
+    });
 
-      document.body.appendChild(script);
+    AFRAME.registerComponent('mute-audio', {
+      init: function() {
+        var el = this.el;
+        var audioEl = document.querySelector('#audio-entity');
 
-    </script>
-  </body>
+        el.addEventListener('click', function() {
+          if (audioEl.components.sound.isPlaying) {
+            audioEl.components.sound.pauseSound();
+            el.setAttribute('text', 'value', 'Unmute AS');
+          } else {
+            audioEl.components.sound.playSound();
+            el.setAttribute('text', 'value', 'Mute AS');
+          }
+        });
+      }
+    });
+  </script>
+</body>
 </html>
