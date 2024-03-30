@@ -8,8 +8,41 @@
     <a-assets>
       <video id="video" src="https://d1yei2z3i6k35z.cloudfront.net/6682800/660726ef15105_VDO_POC_BINLAB_publi_Rock_v2.mp4" autoplay loop crossorigin="anonymous"></video>
       <audio id="audio" src="https://d1yei2z3i6k35z.cloudfront.net/6682800/6605ad3bb02bc_6605aa2c20fe9_BINAULAB_Rock_Publi3dJingles2.mp3" crossorigin="anonymous"></audio>
+      <!-- Textura para o cubo -->
+      <img id="cube-texture" src="https://raw.githubusercontent.com/pcoitino/hits3Daudio/main/img/banner.png">
     </a-assets>
 
+    <!-- Definição do cubo -->
+    <a-entity id="cube" position="0 0 -5" rotation="0 45 0">
+      <a-box material="src: #cube-texture" scale="4 4 4"></a-box>
+      <!-- Controle no cubo -->
+      <a-entity id="cube-control" position="0 0 -1" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #FF0000" move-cube></a-entity>
+    </a-entity>
+
+    <!-- Controles de pausa e de mute -->
+    <a-entity id="controls" position="2 1.5 -5">
+      <!-- Botão de pausa do vídeo -->
+      <a-entity id="pause-video-button" position="0 0 0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #C38A2C" text="value: Pause Vdo; align: center" pause-video></a-entity>
+      <!-- Rótulo para indicar se o vídeo está pausado ou não -->
+      <a-text id="video-label" value="Vídeo: Play" position="0 0.7 0"></a-text>
+
+      <!-- Botão de pausa do áudio -->
+      <a-entity id="pause-audio-button" position="0 -1 0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #FDB53E" text="value: Pause AS; align: center" pause-audio></a-entity>
+      <!-- Rótulo para indicar se o áudio está pausado ou não -->
+      <a-text id="audio-label" value="Áudio: Play" position="0 -0.3 0"></a-text>
+
+      <!-- Botão de mute do vídeo -->
+      <a-entity id="mute-video-button" position="0 -2 0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #C38A2C" text="value: Mute Vdo; align: center" mute-video></a-entity>
+      <!-- Botão de mute do áudio -->
+      <a-entity id="mute-audio-button" position="0 -3 0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
+                material="color: #FDB53E" text="value: Mute AS; align: center" mute-audio></a-entity>
+    </a-entity>
+
+    <!-- Restante do seu código -->
     <a-entity id="video-entity" position="0 0 -5">
       <a-video src="#video" width="4" height="2.25" video-controller></a-video>
     </a-entity>
@@ -21,10 +54,6 @@
       <a-entity slider="min: -1; max: 1; step: 0.1; value: -0.1" position="3 -2.9 0"
                 event-set__click="_target: #video-entity.components.video-controller; _delay: ${this.components.slider.data.value}"
                 event-set__click="_target: #delay-label; value: Delay: ${this.components.slider.data.value.toFixed(1)}"></a-entity>
-      <a-entity id="video-mute-button" position="1.7 -2.9  0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
-                material="color: #C38A2C" text="value: Mute Vdo; align: center" mute-video></a-entity>
-      <a-entity id="audio-mute-button" position="0.3 -2.9 0" geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.1"
-                material="color: #FDB53E" text="value: Mute AS; align: center" mute-audio></a-entity>
     </a-entity>
 
     <a-entity camera wasd-controls look-controls>
@@ -33,54 +62,68 @@
   </a-scene>
 
   <script>
-    AFRAME.registerComponent('video-controller', {
-      schema: {
-        delay: {type: 'number', default: 0}
-      },
-
-      init: function() {
-        this.videoEl = this.el.components.material.material.map.image;
-      },
-
-      update: function() {
-        if (this.videoEl) {
-          this.videoEl.currentTime = this.data.delay;
-        }
-      }
-    });
-
-    AFRAME.registerComponent('slider', {
-      schema: {
-        min: {type: 'number', default: 0},
-        max: {type: 'number', default: 1},
-        step: {type: 'number', default: 0.1},
-        value: {type: 'number', default: 0}
-      },
-
+    // Componente para controlar a posição do cubo
+    AFRAME.registerComponent('move-cube', {
       init: function() {
         var el = this.el;
-        var data = this.data;
+        var previousPosition = {x: 0, y: 0, z: -5};
 
-        el.setAttribute('geometry', {
-          primitive: 'box',
-          width: 1,
-          height: 0.1,
-          depth: 0.1
-        });
+        el.addEventListener('mousedown', function(event) {
+          var onMouseMove = function(event) {
+            var deltaX = event.movementX || event.mozMovementX || 0;
+            var deltaY = event.movementY || event.mozMovementY || 0;
 
-        el.setAttribute('material', {color: '#ccc'});
+            el.object3D.position.x += deltaX / 100;
+            el.object3D.position.y -= deltaY / 100;
+          };
 
-        el.addEventListener('click', function(evt) {
-          var sliderWidth = 1;
-          var sliderX = evt.detail.intersection.point.x;
-          var value = (sliderX + sliderWidth / 2) / sliderWidth;
-          value = data.min + (data.max - data.min) * value;
-          value = Math.round(value / data.step) * data.step;
-          el.setAttribute('slider', 'value', value);
+          // Adiciona evento de mousemove enquanto o mouse é arrastado
+          el.sceneEl.addEventListener('mousemove', onMouseMove);
+          // Remove o evento de mousemove ao soltar o clique do mouse
+          el.sceneEl.addEventListener('mouseup', function() {
+            el.sceneEl.removeEventListener('mousemove', onMouseMove);
+          });
         });
       }
     });
 
+    // Componente para pausar o vídeo
+    AFRAME.registerComponent('pause-video', {
+      init: function() {
+        var el = this.el;
+        var videoEl = document.querySelector('#video');
+
+        el.addEventListener('click', function() {
+          if (videoEl.paused) {
+            videoEl.play();
+            el.setAttribute('text', 'value', 'Pause Vdo');
+          } else {
+            videoEl.pause();
+            el.setAttribute('text', 'value', 'Play Vdo');
+          }
+        });
+      }
+    });
+
+    // Componente para pausar o áudio
+    AFRAME.registerComponent('pause-audio', {
+      init: function() {
+        var el = this.el;
+        var audioEl = document.querySelector('#audio-entity');
+
+        el.addEventListener('click', function() {
+          if (audioEl.components.sound.isPlaying) {
+            audioEl.components.sound.pauseSound();
+            el.setAttribute('text', 'value', 'Play AS');
+          } else {
+            audioEl.components.sound.playSound();
+            el.setAttribute('text', 'value', 'Pause AS');
+          }
+        });
+      }
+    });
+
+    // Componente para mutar o vídeo
     AFRAME.registerComponent('mute-video', {
       init: function() {
         var el = this.el;
@@ -98,18 +141,19 @@
       }
     });
 
+    // Componente para mutar o áudio
     AFRAME.registerComponent('mute-audio', {
       init: function() {
         var el = this.el;
         var audioEl = document.querySelector('#audio-entity');
 
         el.addEventListener('click', function() {
-          if (audioEl.components.sound.isPlaying) {
-            audioEl.components.sound.pauseSound();
-            el.setAttribute('text', 'value', 'Unmute AS');
-          } else {
+          if (audioEl.components.sound.isPaused) {
             audioEl.components.sound.playSound();
             el.setAttribute('text', 'value', 'Mute AS');
+          } else {
+            audioEl.components.sound.pauseSound();
+            el.setAttribute('text', 'value', 'Unmute AS');
           }
         });
       }
